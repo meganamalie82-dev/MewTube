@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MewTube - YouTube for Cats</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <!-- Tone.js for meow SFX -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            mewRed: '#ff0033',
+            mewDarkBg: '#050505',
+            mewCardBg: '#121212',
+            mewHover: '#222222',
+            mewBorder: '#2a2a2a'
+          },
+          fontFamily: {
+            sans: ['Roboto', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #050505;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #2a2a2a;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #ff0033;
+    }
+    .line-clamp-2 {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body class="bg-mewDarkBg text-white font-sans antialiased selection:bg-mewRed selection:text-white min-h-screen flex flex-col">
+
+  <!-- TOP HEADER / NAVBAR -->
+  <header class="sticky top-0 z-40 bg-mewDarkBg/95 backdrop-blur-md border-b border-mewBorder px-4 py-2.5 flex items-center justify-between">
+    <!-- Left Logo & Menu -->
+    <div class="flex items-center gap-4">
+      <button id="toggleSidebar" onclick="toggleSidebarMenu()" class="p-2 hover:bg-mewHover rounded-full transition text-lg w-10 h-10 flex items-center justify-center">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+      
+      <!-- MewTube Logo Matching Provided Image -->
+      <a href="#" onclick="switchTab('home')" class="flex items-center gap-1 group select-none">
+        <span class="text-2xl font-black tracking-tighter text-white">Mew</span>
+        <div class="relative bg-mewRed text-white px-2.5 py-0.5 rounded-2xl flex items-center justify-center font-black text-xl tracking-tight shadow-lg shadow-mewRed/30 group-hover:scale-105 transition border border-mewRed">
+          <!-- Cat Ear Shapes -->
+          <div class="absolute -top-1.5 left-1.5 w-3 h-3 bg-mewRed rotate-45 rounded-sm"></div>
+          <div class="absolute -top-1.5 right-1.5 w-3 h-3 bg-mewRed rotate-45 rounded-sm"></div>
+          <span class="relative z-10 text-white font-extrabold">Tube</span>
+        </div>
+      </a>
+    </div>
+
+    <!-- Center Search Bar -->
+    <div class="flex-1 max-w-2xl mx-4 hidden md:flex items-center">
+      <div class="flex w-full items-center">
+        <div class="relative w-full">
+          <input type="text" id="searchInput" placeholder="Search cat videos, laser pointers, zoomies..." 
+            class="w-full bg-[#0a0a0a] border border-mewBorder rounded-l-full py-2 px-4 pl-5 text-sm text-white focus:outline-none focus:border-mewRed transition"
+            onkeyup="if(event.key === 'Enter') executeSearch()">
+        </div>
+        <button id="searchBtn" onclick="executeSearch()" class="bg-mewHover border border-l-0 border-mewBorder px-6 py-2 rounded-r-full hover:bg-mewRed transition text-gray-200">
+          <i class="fa-solid fa-magnifying-glass"></i>
+        </button>
+      </div>
+      <button id="audioToggleBtn" title="Toggle Meow Audio SFX" class="ml-3 p-2 bg-mewHover hover:bg-mewRed rounded-full w-10 h-10 flex items-center justify-center text-mewRed hover:text-white transition">
+        <i class="fa-solid fa-volume-high" id="audioIcon"></i>
+      </button>
+    </div>
+
+    <!-- Right Profile / Actions -->
+    <div class="flex items-center gap-2">
+      <button onclick="openVideoUploadModal()" class="flex items-center gap-2 bg-mewRed hover:bg-red-700 text-white px-3.5 py-1.5 rounded-full text-sm font-bold transition shadow-lg shadow-mewRed/20">
+        <i class="fa-solid fa-plus"></i>
+        <span>Upload</span>
+      </button>
+
+      <!-- Dynamic Auth Area -->
+      <div id="authHeaderArea" class="flex items-center gap-2 ml-2">
+        <!-- Rendered dynamically by JS -->
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN BODY LAYOUT -->
+  <div class="flex flex-1 overflow-hidden">
+
+    <!-- SIDEBAR NAVIGATION -->
+    <aside id="sidebar" class="w-64 bg-mewDarkBg border-r border-mewBorder flex flex-col shrink-0 transition-all duration-300 overflow-y-auto">
+      <div class="p-3 space-y-1">
+        <button onclick="switchTab('home')" class="nav-btn active w-full flex items-center gap-5 px-3 py-2.5 rounded-xl hover:bg-mewHover text-sm font-medium transition">
+          <i class="fa-solid fa-house text-lg w-6 text-center text-mewRed"></i>
+          <span>Home</span>
+        </button>
+        <button onclick="switchTab('shorts')" class="nav-btn w-full flex items-center gap-5 px-3 py-2.5 rounded-xl hover:bg-mewHover text-sm font-medium transition text-gray-300 hover:text-white">
+          <i class="fa-solid fa-bolt text-lg w-6 text-center text-mewRed"></i>
+          <span>Shorts</span>
+        </button>
+        <button onclick="switchTab('trending')" class="nav-btn w-full flex items-center gap-5 px-3 py-2.5 rounded-xl hover:bg-mewHover text-sm font-medium transition text-gray-300 hover:text-white">
+          <i class="fa-solid fa-fire text-lg w-6 text-center"></i>
+          <span>Trending Zoomies</span>
+        </button>
+        <button onclick="switchTab('following')" class="nav-btn w-full flex items-center gap-5 px-3 py-2.5 rounded-xl hover:bg-mewHover text-sm font-medium transition text-gray-300 hover:text-white">
+          <i class="fa-solid fa-paw text-lg w-6 text-center text-mewRed"></i>
+          <span>Following</span>
+        </button>
+      </div>
+
+      <hr class="border-mewBorder my-2 mx-3">
+
+      <div class="p-3 space-y-1">
+        <div class="px-3 py-1 text-xs font-semibold text-gray-500 uppercase tracking-wider">Account & Channel</div>
+        <button onclick="requireAuth(() => switchTab('profile'))" class="nav-btn w-full flex items-center gap-5 px-3 py-2.5 rounded-xl hover:bg-mewHover text-sm font-medium transition text-gray-300 hover:text-white">
+          <i class="fa-solid fa-user-gear text-lg w-6 text-center text-mewRed"></i>
+          <span>Your Channel</span>
+        </button>
+      </div>
+
+      <div class="mt-auto p-4 text-xs text-gray-500 border-t border-mewBorder">
+        <p>&copy; 2026 MewTube Inc. <br>100% Cat-Approved Content.</p>
+      </div>
+    </aside>
+
+    <!-- CONTENT CONTAINER -->
+    <main class="flex-1 overflow-y-auto bg-mewDarkBg p-4 md:p-6" id="mainContent">
+
+      <!-- FILTER TAGS BAR -->
+      <div id="filterCategoryBar" class="flex items-center gap-2 overflow-x-auto pb-4 mb-4 scrollbar-none">
+        <button onclick="filterCategory('All')" class="cat-chip bg-white text-black font-semibold px-3.5 py-1.5 rounded-lg text-sm shrink-0 transition">All</button>
+        <button onclick="filterCategory('3 AM Zoomies')" class="cat-chip bg-mewCardBg hover:bg-mewHover text-white px-3.5 py-1.5 rounded-lg text-sm shrink-0 transition border border-mewBorder">3 AM Zoomies</button>
+        <button onclick="filterCategory('Laser Pointer')" class="cat-chip bg-mewCardBg hover:bg-mewHover text-white px-3.5 py-1.5 rounded-lg text-sm shrink-0 transition border border-mewBorder">Laser Pointer</button>
+        <button onclick="filterCategory('Box Sitting')" class="cat-chip bg-mewCardBg hover:bg-mewHover text-white px-3.5 py-1.5 rounded-lg text-sm shrink-0 transition border border-mewBorder">Box Sitting</button>
+        <button onclick="filterCategory('Purr ASMR')" class="cat-chip bg-mewCardBg hover:bg-mewHover text-white px-3.5 py-1.5 rounded-lg text-sm shrink-0 transition border border-mewBorder">Purr ASMR</button>
+      </div>
+
+      <!-- VIEW: HOME VIDEO GRID -->
+      <div id="viewHome" class="view-panel">
+        <!-- EMPTY STATE IF NO VIDEOS -->
+        <div id="emptyGridState" class="hidden flex flex-col items-center justify-center py-20 text-center space-y-4">
+          <div class="w-24 h-24 bg-mewRed/10 border-2 border-mewRed/30 text-mewRed rounded-full flex items-center justify-center text-4xl shadow-xl">
+            <i class="fa-solid fa-cat"></i>
+          </div>
+          <h2 class="text-2xl font-black text-white">No cat videos uploaded yet!</h2>
+          <p class="text-gray-400 text-sm max-w-md">Be the first feline creator to upload a video or cat file to MewTube!</p>
+          <button onclick="openVideoUploadModal()" class="bg-mewRed hover:bg-red-700 text-white font-bold px-6 py-2.5 rounded-full text-sm transition shadow-lg shadow-mewRed/30">
+            <i class="fa-solid fa-plus mr-1"></i> Upload First Cat Video
+          </button>
+        </div>
+
+        <div id="videoGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+          <!-- Rendered via JavaScript -->
+        </div>
+      </div>
+
+      <!-- VIEW: SHORTS -->
+      <div id="viewShorts" class="view-panel hidden">
+        <div class="max-w-md mx-auto flex flex-col items-center space-y-6 py-4">
+          <div id="shortsContainer" class="w-full aspect-[9/16] bg-black border border-mewBorder rounded-3xl overflow-hidden relative shadow-2xl flex flex-col justify-end p-5">
+            <!-- Shorts Dynamic Canvas Video Stream -->
+            <canvas id="shortsCanvas" class="absolute inset-0 w-full h-full object-cover"></canvas>
+            
+            <!-- Gradient Overlay -->
+            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 pointer-events-none"></div>
+
+            <!-- Overlay Details -->
+            <div class="relative z-10 space-y-3 text-white">
+              <div class="flex items-center gap-3">
+                <img id="shortAuthorAvatar" class="w-10 h-10 rounded-full ring-2 ring-mewRed object-cover" src="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=200">
+                <span id="shortAuthorName" class="font-bold text-sm">@captainwhiskers</span>
+                <button onclick="toggleMeowFollow(this)" class="bg-mewRed hover:bg-red-700 px-3 py-1 rounded-full text-xs font-bold transition">MeowFollow</button>
+              </div>
+              <p id="shortTitle" class="text-sm font-semibold line-clamp-2">3 AM Extreme Speedrun Zoomies 🐱⚡</p>
+            </div>
+
+            <!-- Floating Action Buttons -->
+            <div class="absolute right-3 bottom-20 z-10 flex flex-col items-center gap-5 text-white">
+              <button onclick="triggerPurrSFX()" class="flex flex-col items-center text-xs gap-1 hover:text-mewRed transition">
+                <div class="w-11 h-11 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 text-lg">
+                  <i class="fa-solid fa-heart text-mewRed"></i>
+                </div>
+                <span>Purr</span>
+              </button>
+              <button onclick="openShortsCommentsModal()" class="flex flex-col items-center text-xs gap-1 hover:text-mewRed transition">
+                <div class="w-11 h-11 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 text-lg">
+                  <i class="fa-solid fa-comment"></i>
+                </div>
+                <span>Meow</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-4">
+            <button onclick="nextShort()" class="bg-mewRed hover:bg-red-700 text-white font-bold px-6 py-2.5 rounded-full text-xs transition shadow-lg shadow-mewRed/30 flex items-center gap-2">
+              <span>Next Short</span>
+              <i class="fa-solid fa-arrow-down"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW: CHANNEL & PROFILE -->
+      <div id="viewProfile" class="view-panel hidden">
+        <div class="max-w-6xl mx-auto space-y-6">
+          
+          <!-- Banner Section -->
+          <div class="relative group rounded-2xl overflow-hidden h-48 md:h-64 bg-mewCardBg border border-mewBorder">
+            <img id="channelBannerImg" src="" class="w-full h-full object-cover">
+            <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+              <button onclick="openBannerModal()" class="bg-black/80 hover:bg-mewRed text-white px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2 border border-white/20 transition shadow-lg">
+                <i class="fa-solid fa-camera"></i>
+                <span>Change Banner</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Channel Info Header -->
+          <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 bg-mewCardBg p-6 rounded-2xl border border-mewBorder shadow-xl">
+            <div class="flex items-center gap-5">
+              <div class="relative group w-24 h-24 md:w-28 md:h-28 rounded-full overflow-hidden ring-4 ring-mewRed shrink-0 shadow-lg bg-black">
+                <img id="channelAvatarImg" src="" alt="Channel Avatar" class="w-full h-full object-cover">
+                <button onclick="openAvatarModal()" class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold gap-1">
+                  <i class="fa-solid fa-pen"></i> PFP
+                </button>
+              </div>
+
+              <div class="space-y-1">
+                <div class="flex items-center gap-3 flex-wrap">
+                  <h1 id="channelNameDisplay" class="text-2xl md:text-3xl font-black text-white tracking-tight">Channel Name</h1>
+                  <span class="bg-mewRed/20 text-mewRed border border-mewRed/40 text-xs px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1">
+                    <i class="fa-solid fa-circle-check"></i> Verified Feline
+                  </span>
+                </div>
+                
+                <p id="channelHandleDisplay" class="text-sm text-gray-400 font-medium">@handle &bull; <span id="channelFollowerCount">0</span> MeowFollowers</p>
+                <p id="channelBioDisplay" class="text-xs text-gray-300 line-clamp-2 max-w-xl">Channel bio goes here...</p>
+
+                <!-- Dynamic 12-Day Lock Countdown Badge -->
+                <div id="cooldownBadge" class="hidden mt-2 inline-flex items-center gap-2 text-xs bg-amber-500/10 border border-amber-500/30 text-amber-400 px-3.5 py-1.5 rounded-full font-semibold">
+                  <i class="fa-solid fa-lock text-xs"></i>
+                  <span>Name Edit Lock: <strong id="cooldownCountdownText">12 days remaining</strong></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center gap-3 w-full md:w-auto">
+              <button onclick="openEditProfileModal()" class="flex-1 md:flex-initial bg-mewHover hover:bg-mewBorder text-white px-5 py-2.5 rounded-full font-bold text-sm transition flex items-center justify-center gap-2 border border-mewBorder">
+                <i class="fa-solid fa-pen-to-square"></i>
+                <span>Customize Profile</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Channel Uploaded Videos Grid -->
+          <div class="space-y-4">
+            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-video text-mewRed"></i> Your Uploaded Videos
+            </h3>
+            <div id="chContentVideos" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+              <!-- Uploaded videos rendered here -->
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- MODAL: SIGN IN / REGISTER -->
+  <div id="authModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div class="bg-mewCardBg border border-mewBorder rounded-2xl max-w-md w-full p-6 space-y-5 shadow-2xl">
+      <div class="flex justify-between items-center border-b border-mewBorder pb-3">
+        <h3 class="text-xl font-black text-white flex items-center gap-2">
+          <i class="fa-solid fa-cat text-mewRed"></i> Sign In to MewTube
+        </h3>
+        <button onclick="closeModal('authModal')" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Cat Username / Channel Name</label>
+          <input type="text" id="authNameInput" placeholder="e.g. Captain Whiskers" class="w-full bg-[#0a0a0a] border border-mewBorder rounded-xl p-3 text-sm text-white focus:outline-none focus:border-mewRed">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Cat Handle</label>
+          <input type="text" id="authHandleInput" placeholder="e.g. @captainwhiskers" class="w-full bg-[#0a0a0a] border border-mewBorder rounded-xl p-3 text-sm text-white focus:outline-none focus:border-mewRed">
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-3 pt-3 border-t border-mewBorder">
+        <button onclick="closeModal('authModal')" class="px-4 py-2 rounded-full text-xs font-bold text-gray-400 hover:text-white">Cancel</button>
+        <button onclick="loginUser()" class="bg-mewRed hover:bg-red-700 text-white px-6 py-2 rounded-full text-xs font-bold transition shadow-lg shadow-mewRed/30">Sign In</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: UPLOAD VIDEO WITH LOCAL FILES AND CAT-SAFETY AI DETECTOR -->
+  <div id="uploadVideoModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div class="bg-mewCardBg border border-mewBorder rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl">
+      <div class="flex justify-between items-center border-b border-mewBorder pb-3">
+        <h3 class="text-xl font-black text-white flex items-center gap-2">
+          <i class="fa-solid fa-upload text-mewRed"></i> Upload Cat Video / Short
+        </h3>
+        <button onclick="closeModal('uploadVideoModal')" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Video Type</label>
+          <select id="uploadType" class="w-full bg-[#0a0a0a] border border-mewBorder rounded-xl p-3 text-sm text-white focus:outline-none focus:border-mewRed">
+            <option value="standard">Standard Video</option>
+            <option value="short">MewTube Short (Vertical)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Video Title</label>
+          <input type="text" id="uploadTitle" placeholder="e.g. Catching the laser pointer speedrun" class="w-full bg-[#0a0a0a] border border-mewBorder rounded-xl p-3 text-sm text-white focus:outline-none focus:border-mewRed">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Select Video / GIF File</label>
+          <div class="flex gap-2 items-center">
+            <input type="text" id="uploadFileUrl" placeholder="File URL or browse device..." class="flex-1 bg-[#0a0a0a] border border-mewBorder rounded-xl p-3 text-sm text-white focus:outline-none focus:border-mewRed">
+            <label class="bg-mewHover hover:bg-mewRed text-white px-3.5 py-3 rounded-xl cursor-pointer text-xs font-bold transition flex items-center gap-1 border border-mewBorder">
+              <i class="fa-solid fa-folder-open"></i> Browse File
+              <input type="file" id="videoFileInput" accept="video/*,image/gif,image/*" class="hidden" onchange="handleVideoFileSelect(event)">
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Category</label>
+          <select id="uploadCategory" class="w-full bg-[#0a0a0a] border border-mewBorder rounded-xl p-3 text-sm text-white focus:outline-none focus:border-mewRed">
+            <option value="3 AM Zoomies">3 AM Zoomies</option>
+            <option value="Laser Pointer">Laser Pointer</option>
+            <option value="Box Sitting">Box Sitting</option>
+            <option value="Purr ASMR">Purr ASMR</option>
+            <option value="Dogs & Puppies">Dogs & Puppies (Non-Cat)</option>
+            <option value="Human Gaming">Human Gaming (Non-Cat)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Video Description</label>
+          <textarea id="uploadDesc" rows="2" placeholder="Describe your feline adventures..." class="w-full bg-[#0a0a0a] border border-mewBorder rounded-xl p-3 text-sm text-white focus:outline-none focus:border-mewRed resize-none"></textarea>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-3 pt-3 border-t border-mewBorder">
+        <button onclick="closeModal('uploadVideoModal')" class="px-4 py-2 rounded-full text-xs font-bold text-gray-400 hover:text-white">Cancel</button>
+        <button onclick="submitVideoUpload()" class="bg-mewRed hover:bg-red-700 text-white px-6 py-2.5 rounded-full text-xs font-bold transition shadow-lg shadow-mewRed/30">Publish Content</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CAT SAFETY AI DETECTOR WARNING -->
+  <div id="aiWarningModal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div class="bg-mewCardBg border-2 border-mewRed rounded-2xl max-w-sm w-full p-6 text-center space-y-4 shadow-2xl">
+      <div class="w-16 h-16 bg-mewRed/20 text-mewRed rounded-full flex items-center justify-center mx-auto text-3xl animate-bounce">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+      </div>
+      <h3 class="text-xl font-black text-white">Cat-Safety AI Detector</h3>
+      <p class="text-sm text-gray-200 leading-relaxed font-medium">
+        "Opps! This is not cat content! 🐱 Purr-lease upload feline-approved videos only."
+      </p>
+      <button onclick="closeModal('aiWarningModal')" class="w-full bg-mewRed hover:bg-red-700 text-white py-2.5 rounded-full text-xs font-bold transition shadow-lg shadow-mewRed/40">
+        Understood, Meow!
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL: EDIT PROFILE (WITH STRICT 12-DAY LOCK) -->
+  <div id="editProfileModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div class="bg-mewCardBg border border-mewBorder rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl">
+      <div class="flex justify-between items-center border-b border-mewBorder pb-3">
+        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-sliders text-mewRed"></i> Customize Profile
+        </h3>
+        <button onclick="closeModal('editProfileModal')" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Channel Name</label>
+          <input type="text" id="inputChannelName" class="w-full bg-[#0a0a0a] border border-mewBorder rounded-xl p-3 text-sm text-white focus:outline-none focus:border-mewRed transition">
+          <p class="text-[11px] text-amber-400 mt-1.5 flex items-center gap-1 font-medium">
+            <i class="fa-solid fa-clock"></i>
+            <span>Warning: Editing your channel name locks name editing for <strong>12 full days</strong>.</span>
+          </p>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Custom PFP Image</label>
+          <div class="flex gap-2 items-center">
+            <input type="text" id="inputPfpUrl" placeholder="Image URL..." class="flex-1 bg-[#0a0a0a] border border-mewBorder rounded-xl p-3 text-sm text-white focus:outline-none focus:border-mewRed transition">
+            <label class="bg-mewHover hover:bg-mewRed text-white px-3 py-3 rounded-xl cursor-pointer text-xs font-bold transition flex items-center gap-1 border border-mewBorder">
+              <i class="fa-solid fa-folder-open"></i> File
+              <input type="file" accept="image/*" class="hidden" onchange="handleFileSelect(event, 'inputPfpUrl')">
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Channel Bio</label>
+          <textarea id="inputChannelBio" rows="3" class="w-full bg-[#0a0a0a] border border-mewBorder rounded-xl p-3 text-sm text-white focus:outline-none focus:border-mewRed transition resize-none"></textarea>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-3 border-t border-mewBorder pt-4">
+        <button onclick="closeModal('editProfileModal')" class="px-4 py-2 rounded-full text-xs font-bold text-gray-400 hover:text-white">Cancel</button>
+        <button onclick="saveProfileChanges()" class="bg-mewRed hover:bg-red-700 text-white px-6 py-2 rounded-full text-xs font-bold transition shadow-lg shadow-mewRed/30">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CHANGE AVATAR / PFP -->
+  <div id="pfpModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div class="bg-mewCardBg border border-mewBorder rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex justify-between items-center border-b border-mewBorder pb-3">
+        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-image text-mewRed"></i> Update Profile Picture (PFP)
+        </h3>
+        <button onclick="closeModal('pfpModal')" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Image URL or Local File</label>
+        <div class="flex gap-2 items-center">
+          <input type="text" id="inputAvatarUrlModal" placeholder="Paste URL..." class="flex-1 bg-[#0a0a0a] border border-mewBorder rounded-xl p-3 text-sm text-white focus:outline-none focus:border-mewRed">
+          <label class="bg-mewHover hover:bg-mewRed text-white px-3.5 py-3 rounded-xl cursor-pointer text-xs font-bold transition flex items-center gap-1 border border-mewBorder">
+            <i class="fa-solid fa-folder-open"></i> Choose File
+            <input type="file" accept="image/*" class="hidden" onchange="handleFileSelect(event, 'inputAvatarUrlModal')">
+          </label>
+        </div>
+      </div>
+      <div class="flex justify-end gap-3 pt-2">
+        <button onclick="closeModal('pfpModal')" class="px-4 py-2 rounded-full text-xs font-bold text-gray-400 hover:text-white">Cancel</button>
+        <button onclick="saveAvatarFromModal()" class="bg-mewRed hover:bg-red-700 text-white px-6 py-2 rounded-full text-xs font-bold transition">Save PFP</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CHANGE BANNER / WALLPAPER -->
+  <div id="bannerModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div class="bg-mewCardBg border border-mewBorder rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex justify-between items-center border-b border-mewBorder pb-3">
+        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-panorama text-mewRed"></i> Update Channel Banner / Wallpaper
+        </h3>
+        <button onclick="closeModal('bannerModal')" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Banner Image URL or Local File</label>
+        <div class="flex gap-2 items-center">
+          <input type="text" id="inputBannerUrlModal" placeholder="Paste URL..." class="flex-1 bg-[#0a0a0a] border border-mewBorder rounded-xl p-3 text-sm text-white focus:outline-none focus:border-mewRed">
+          <label class="bg-mewHover hover:bg-mewRed text-white px-3.5 py-3 rounded-xl cursor-pointer text-xs font-bold transition flex items-center gap-1 border border-mewBorder">
+            <i class="fa-solid fa-folder-open"></i> Choose File
+            <input type="file" accept="image/*" class="hidden" onchange="handleFileSelect(event, 'inputBannerUrlModal')">
+          </label>
+        </div>
+      </div>
+      <div class="flex justify-end gap-3 pt-2">
+        <button onclick="closeModal('bannerModal')" class="px-4 py-2 rounded-full text-xs font-bold text-gray-400 hover:text-white">Cancel</button>
+        <button onclick="saveBannerFromModal()" class="bg-mewRed hover:bg-red-700 text-white px-6 py-2 rounded-full text-xs font-bold transition">Save Banner</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: VIDEO WATCH PLAYER -->
+  <div id="videoModal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md hidden overflow-y-auto">
+    <div class="max-w-5xl mx-auto p-4 md:p-6 my-6">
+      <div class="flex justify-end mb-2">
+        <button onclick="closeVideoModal()" class="text-gray-400 hover:text-white bg-mewCardBg hover:bg-mewRed p-2.5 rounded-full transition w-10 h-10 flex items-center justify-center">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="space-y-4">
+        <!-- Real HTML5 Video Player Container -->
+        <div class="relative bg-black rounded-2xl overflow-hidden aspect-video border border-mewBorder shadow-2xl flex items-center justify-center">
+          <!-- Real HTML5 Video Element -->
+          <video id="mainVideoPlayer" controls autoplay class="w-full h-full object-contain hidden"></video>
+          <!-- Canvas Backup Stream for animated generated video/GIFs -->
+          <canvas id="mainPlayerCanvas" class="w-full h-full object-cover hidden"></canvas>
+          <!-- Image/GIF fallback player -->
+          <img id="mainImagePlayer" class="w-full h-full object-contain hidden" alt="Video Feed">
+        </div>
+
+        <!-- Video Title -->
+        <h2 id="modalVideoTitle" class="text-2xl font-black text-white">Title</h2>
+
+        <!-- Author & MeowFollow Action -->
+        <div class="flex items-center justify-between border-b border-mewBorder pb-4 flex-wrap gap-4">
+          <div class="flex items-center gap-3">
+            <img id="modalAuthorAvatar" class="w-11 h-11 rounded-full object-cover ring-2 ring-mewRed">
+            <div>
+              <h3 id="modalAuthorName" class="font-bold text-white text-base">Author</h3>
+              <p id="modalAuthorFollowers" class="text-xs text-gray-400">0 MeowFollowers</p>
+            </div>
+            <button id="modalFollowBtn" onclick="toggleMeowFollow(this)" class="ml-3 bg-mewRed hover:bg-red-700 text-white font-bold text-xs px-5 py-2 rounded-full transition shadow-lg shadow-mewRed/30">
+              MeowFollow
+            </button>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button onclick="triggerPurrSFX()" class="bg-mewCardBg hover:bg-mewHover text-white px-4 py-2 rounded-full text-xs font-bold transition border border-mewBorder flex items-center gap-2">
+              <i class="fa-solid fa-heart text-mewRed"></i> Purr Like
+            </button>
+          </div>
+        </div>
+
+        <p id="modalDescription" class="text-sm text-gray-300 bg-mewCardBg p-4 rounded-xl border border-mewBorder"></p>
+
+        <!-- COMMENT SECTION WITH GIFS FOR STANDARD VIDEOS -->
+        <div class="space-y-4 pt-4 border-t border-mewBorder">
+          <h3 class="text-lg font-black text-white flex items-center gap-2">
+            <i class="fa-solid fa-comments text-mewRed"></i> Comments & GIFs
+          </h3>
+          
+          <!-- Comment Input Box -->
+          <div class="space-y-2 bg-mewCardBg p-4 rounded-2xl border border-mewBorder">
+            <div class="flex gap-2">
+              <input type="text" id="videoCommentInput" placeholder="Add a meow comment..." class="flex-1 bg-[#0a0a0a] border border-mewBorder rounded-xl p-3 text-sm text-white focus:outline-none focus:border-mewRed">
+              <button onclick="toggleGifPicker('videoGifPicker')" class="bg-mewHover hover:bg-mewRed text-white px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-mewBorder">
+                <i class="fa-solid fa-film"></i> GIF
+              </button>
+              <button onclick="postVideoComment()" class="bg-mewRed hover:bg-red-700 text-white px-5 py-2 rounded-xl text-xs font-bold transition">Post</button>
+            </div>
+
+            <!-- GIF Picker Container -->
+            <div id="videoGifPicker" class="hidden grid grid-cols-4 gap-2 pt-2 border-t border-mewBorder">
+              <!-- Rendered by JS -->
+            </div>
+            <input type="hidden" id="selectedVideoGif" value="">
+            <div id="videoGifPreview" class="hidden flex items-center gap-2 pt-2">
+              <span class="text-xs text-mewRed font-bold">Selected GIF:</span>
+              <img id="videoGifPreviewImg" class="w-12 h-12 rounded-lg object-cover ring-1 ring-mewRed">
+              <button onclick="clearSelectedGif('videoGifPicker', 'selectedVideoGif', 'videoGifPreview')" class="text-xs text-gray-400 hover:text-white"><i class="fa-solid fa-xmark"></i> Remove</button>
+            </div>
+          </div>
+
+          <!-- Comments Feed -->
+          <div id="videoCommentsList" class="space-y-3">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: SHORTS COMMENTS WITH GIFS -->
+  <div id="shortsCommentsModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-mewCardBg border border-mewBorder rounded-t-3xl sm:rounded-2xl max-w-lg w-full p-5 space-y-4 shadow-2xl max-h-[80vh] flex flex-col">
+      <div class="flex justify-between items-center border-b border-mewBorder pb-3">
+        <h3 class="text-lg font-black text-white flex items-center gap-2">
+          <i class="fa-solid fa-comments text-mewRed"></i> Short Meows & GIFs
+        </h3>
+        <button onclick="closeModal('shortsCommentsModal')" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <!-- Comments Feed -->
+      <div id="shortsCommentsList" class="flex-1 overflow-y-auto space-y-3 pr-1">
+        <!-- Rendered by JS -->
+      </div>
+
+      <!-- Short Comment Input Box -->
+      <div class="space-y-2 bg-[#0a0a0a] p-3 rounded-2xl border border-mewBorder shrink-0">
+        <div class="flex gap-2">
+          <input type="text" id="shortCommentInput" placeholder="Add a meow..." class="flex-1 bg-mewCardBg border border-mewBorder rounded-xl p-2.5 text-sm text-white focus:outline-none focus:border-mewRed">
+          <button onclick="toggleGifPicker('shortGifPicker')" class="bg-mewHover hover:bg-mewRed text-white px-3 py-2 rounded-xl text-xs font-bold transition border border-mewBorder flex items-center gap-1">
+            <i class="fa-solid fa-film"></i> GIF
+          </button>
+          <button onclick="postShortComment()" class="bg-mewRed hover:bg-red-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition">Post</button>
+        </div>
+
+        <div id="shortGifPicker" class="hidden grid grid-cols-4 gap-2 pt-2 border-t border-mewBorder">
+          <!-- Rendered by JS -->
+        </div>
+        <input type="hidden" id="selectedShortGif" value="">
+        <div id="shortGifPreview" class="hidden flex items-center gap-2 pt-2">
+          <span class="text-xs text-mewRed font-bold">Selected GIF:</span>
+          <img id="shortGifPreviewImg" class="w-12 h-12 rounded-lg object-cover ring-1 ring-mewRed">
+          <button onclick="clearSelectedGif('shortGifPicker', 'selectedShortGif', 'shortGifPreview')" class="text-xs text-gray-400 hover:text-white"><i class="fa-solid fa-xmark"></i> Remove</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    // --- APP STATE ---
+    const STATE = {
+      currentUser: null,
+      audioEnabled: true,
+      currentTab: 'home',
+      nameLockUntilTimestamp: null,
+      activeVideoId: null,
+      profile: {
+        name: "Captain Whiskers",
+        handle: "@captainwhiskers",
+        followers: 0,
+        avatar: "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=200&auto=format&fit=crop&q=80",
+        banner: "https://images.unsplash.com/photo-1533738363-b7f9aef128ce?w=1400&auto=format&fit=crop&q=80",
+        bio: "Professional laser pointer hunter & box reviewer."
+      },
+      videos: [],
+      shorts: []
+    };
+
+    const PRESET_GIFS = [
+      "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExbmZ4eXVwbWFtMnllZHdmemFvdXBkZXA0ZTRuNzNhNDI3MXdpOXBzYSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/BzyTuYCmvSORqs1ABM/giphy.gif",
+      "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3ZtNHRneGlndGpxeWs1M2R6Zm5yZDN6NnA0dXFsaW1scWlqdzZwaCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/jpbnoe3UIa8TU8LM13/giphy.gif",
+      "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExeHF4a2Foc2dxc3p6OHFwMGtzcGUyOHlndmVsbm9rNHMwcWR1bnpsdSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/CjmvTCZf2U3p09Cn0h/giphy.gif"
+    ];
+
+    const COMMENTS_STORE = {};
+
+    const CAT_IMAGES = [
+      'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=600&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1573865526739-10659fec78a5?w=600&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1533738363-b7f9aef128ce?w=600&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1543852786-1cf6624b9987?w=600&auto=format&fit=crop&q=80'
+    ];
+
+    let currentShortIndex = 0;
+    let shortsAnimFrame = null;
+    let playerAnimFrame = null;
+
+    window.onload = function() {
+      updateAuthUI();
+      renderVideoGrid();
+      startCountdownTimerLoop();
+    };
+
+    // --- NAVIGATION TABS & SIDEBAR ---
+    function toggleSidebarMenu() {
+      const sb = document.getElementById('sidebar');
+      sb.classList.toggle('-translate-x-full');
+      sb.classList.toggle('hidden');
+    }
+
+    function switchTab(tabName) {
+      STATE.currentTab = tabName;
+      document.querySelectorAll('.view-panel').forEach(el => el.classList.add('hidden'));
+
+      if (tabName === 'home') {
+        document.getElementById('viewHome').classList.remove('hidden');
+      } else if (tabName === 'shorts') {
+        document.getElementById('viewShorts').classList.remove('hidden');
+        renderShortsPlayer();
+      } else if (tabName === 'profile') {
+        document.getElementById('viewProfile').classList.remove('hidden');
+        updateProfileDOM();
+      } else {
+        document.getElementById('viewHome').classList.remove('hidden');
+      }
+    }
+
+    function filterCategory(cat) {
+      if (cat === 'All') {
+        renderVideoGrid();
+      } else {
+        const filtered = STATE.videos.filter(v => v.category === cat);
+        const grid = document.getElementById('videoGrid');
+        if (filtered.length === 0) {
+          grid.innerHTML = `<p class="text-gray-500 text-sm col-span-4 py-8 text-center">No videos found under '${cat}'.</p>`;
+        } else {
+          grid.innerHTML = filtered.map(v => `
+            <div onclick="openVideoModal('${v.id}')" class="group cursor-pointer flex flex-col space-y-2">
+              <div class="relative aspect-video rounded-xl overflow-hidden bg-mewCardBg border border-mewBorder group-hover:border-mewRed transition">
+                <img src="${v.thumbnail}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+              </div>
+              <h3 class="text-sm font-bold text-white line-clamp-2">${v.title}</h3>
+            </div>
+          `).join('');
+        }
+      }
+    }
+
+    function executeSearch() {
+      const q = document.getElementById('searchInput').value.toLowerCase().trim();
+      if (!q) { renderVideoGrid(); return; }
+      const results = STATE.videos.filter(v => v.title.toLowerCase().includes(q) || v.category.toLowerCase().includes(q));
+      const grid = document.getElementById('videoGrid');
+      if (results.length === 0) {
+        grid.innerHTML = `<p class="text-gray-500 text-sm col-span-4 py-8 text-center">No results for "${q}".</p>`;
+      } else {
+        grid.innerHTML = results.map(v => `
+          <div onclick="openVideoModal('${v.id}')" class="group cursor-pointer flex flex-col space-y-2">
+            <div class="relative aspect-video rounded-xl overflow-hidden bg-mewCardBg border border-mewBorder group-hover:border-mewRed transition">
+              <img src="${v.thumbnail}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+            </div>
+            <h3 class="text-sm font-bold text-white line-clamp-2">${v.title}</h3>
+          </div>
+        `).join('');
+      }
+    }
+
+    function toggleMeowFollow(btn) {
+      requireAuth(() => {
+        if (btn.innerText.includes('Followed')) {
+          btn.innerText = 'MeowFollow';
+          btn.classList.remove('bg-mewHover', 'text-white');
+          btn.classList.add('bg-mewRed', 'text-white');
+          if (STATE.profile.followers > 0) STATE.profile.followers--;
+        } else {
+          btn.innerText = 'Followed ✓';
+          btn.classList.remove('bg-mewRed');
+          btn.classList.add('bg-mewHover', 'text-white');
+          STATE.profile.followers++;
+        }
+        updateProfileDOM();
+        triggerMeowSFX();
+      });
+    }
+
+    // --- SHORTS ANIMATION CANVAS ---
+    function renderShortsPlayer() {
+      const canvas = document.getElementById('shortsCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      let angle = 0;
+
+      function anim() {
+        if (STATE.currentTab !== 'shorts') return;
+        canvas.width = canvas.clientWidth || 300;
+        canvas.height = canvas.clientHeight || 500;
+        ctx.fillStyle = '#0a0a0a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Animated energetic cat play ring
+        ctx.save();
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate(angle);
+        ctx.strokeStyle = '#ff0033';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(0, 0, 70 + Math.sin(angle * 3) * 10, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+
+        angle += 0.03;
+        shortsAnimFrame = requestAnimationFrame(anim);
+      }
+      if (shortsAnimFrame) cancelAnimationFrame(shortsAnimFrame);
+      anim();
+    }
+
+    function nextShort() {
+      currentShortIndex++;
+      triggerMeowSFX();
+    }
+
+    // --- MAIN PLAYER ANIMATION CANVAS ---
+    function startPlayerCanvasAnimation() {
+      const canvas = document.getElementById('mainPlayerCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      let t = 0;
+
+      function anim() {
+        if (document.getElementById('videoModal').classList.contains('hidden')) return;
+        canvas.width = canvas.clientWidth || 640;
+        canvas.height = canvas.clientHeight || 360;
+        ctx.fillStyle = '#050505';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = '#ff0033';
+        ctx.font = 'bold 20px Roboto';
+        ctx.textAlign = 'center';
+        ctx.fillText('🐱 Playing Cat Media Stream...', canvas.width / 2, canvas.height / 2);
+
+        t += 0.05;
+        playerAnimFrame = requestAnimationFrame(anim);
+      }
+      if (playerAnimFrame) cancelAnimationFrame(playerAnimFrame);
+      anim();
+    }
+
+    function closeVideoModal() {
+      closeModal('videoModal');
+      if (playerAnimFrame) cancelAnimationFrame(playerAnimFrame);
+    }
+
+    // --- AUDIO SFX ---
+    function triggerMeowSFX() {
+      if (!STATE.audioEnabled) return;
+      try {
+        const synth = new Tone.Synth().toDestination();
+        const now = Tone.now();
+        synth.triggerAttackRelease("C5", "8n", now);
+        synth.triggerAttackRelease("G5", "8n", now + 0.1);
+      } catch (e) {}
+    }
+
+    function triggerPurrSFX() {
+      if (!STATE.audioEnabled) return;
+      try {
+        const synth = new Tone.MembraneSynth().toDestination();
+        synth.triggerAttackRelease("C2", "4n");
+      } catch (e) {}
+    }
+
+    // --- AUTH & USER SYSTEM ---
+    function updateAuthUI() {
+      const container = document.getElementById('authHeaderArea');
+      if (STATE.currentUser) {
+        container.innerHTML = `
+          <div class="flex items-center gap-2 bg-mewCardBg border border-mewBorder rounded-full pl-2 pr-3 py-1">
+            <img src="${STATE.profile.avatar}" class="w-7 h-7 rounded-full object-cover">
+            <span class="text-xs font-bold text-white">${STATE.profile.name}</span>
+            <button onclick="logoutUser()" class="ml-1 text-gray-400 hover:text-mewRed text-xs" title="Sign Out">
+              <i class="fa-solid fa-right-from-bracket"></i>
+            </button>
+          </div>
+        `;
+      } else {
+        container.innerHTML = `
+          <button onclick="openModal('authModal')" class="bg-mewHover hover:bg-mewBorder text-white border border-mewBorder px-4 py-1.5 rounded-full text-xs font-bold transition">
+            Sign In
+          </button>
+        `;
+      }
+    }
+
+    function requireAuth(callback) {
+      if (!STATE.currentUser) {
+        openModal('authModal');
+      } else {
+        callback();
+      }
+    }
+
+    function loginUser() {
+      const name = document.getElementById('authNameInput').value.trim() || 'Captain Whiskers';
+      const handle = document.getElementById('authHandleInput').value.trim() || '@captainwhiskers';
+
+      STATE.currentUser = { name, handle };
+      STATE.profile.name = name;
+      STATE.profile.handle = handle.startsWith('@') ? handle : '@' + handle;
+      STATE.profile.followers = 0;
+
+      updateAuthUI();
+      updateProfileDOM();
+      closeModal('authModal');
+      triggerMeowSFX();
+    }
+
+    function logoutUser() {
+      STATE.currentUser = null;
+      updateAuthUI();
+      switchTab('home');
+    }
+
+    // --- PROFILE & CHANNEL DOM UPDATES ---
+    function updateProfileDOM() {
+      document.getElementById('channelNameDisplay').textContent = STATE.profile.name;
+      document.getElementById('channelHandleDisplay').innerHTML = `${STATE.profile.handle} &bull; <span id="channelFollowerCount">${STATE.profile.followers}</span> MeowFollowers`;
+      document.getElementById('channelBioDisplay').textContent = STATE.profile.bio;
+      document.getElementById('channelAvatarImg').src = STATE.profile.avatar;
+      document.getElementById('channelBannerImg').src = STATE.profile.banner;
+
+      // Render channel uploaded videos
+      const chGrid = document.getElementById('chContentVideos');
+      const myVideos = STATE.videos.filter(v => v.author === STATE.profile.name);
+
+      if (myVideos.length === 0) {
+        chGrid.innerHTML = `<p class="text-gray-500 text-sm col-span-3 py-6 text-center">No videos uploaded by your channel yet.</p>`;
+      } else {
+        chGrid.innerHTML = myVideos.map(v => `
+          <div onclick="openVideoModal('${v.id}')" class="group cursor-pointer flex flex-col space-y-2">
+            <div class="relative aspect-video rounded-xl overflow-hidden bg-mewCardBg border border-mewBorder group-hover:border-mewRed transition">
+              <img src="${v.thumbnail}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+            </div>
+            <h3 class="text-sm font-bold text-white line-clamp-2">${v.title}</h3>
+          </div>
+        `).join('');
+      }
+    }
+
+    // --- MODAL CONTROLS & FILE UPLOADS ---
+    function openModal(id) {
+      document.getElementById(id).classList.remove('hidden');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden');
+    }
+
+    function openVideoUploadModal() {
+      requireAuth(() => openModal('uploadVideoModal'));
+    }
+
+    function openAvatarModal() {
+      requireAuth(() => {
+        document.getElementById('inputAvatarUrlModal').value = STATE.profile.avatar;
+        openModal('pfpModal');
+      });
+    }
+
+    function openBannerModal() {
+      requireAuth(() => {
+        document.getElementById('inputBannerUrlModal').value = STATE.profile.banner;
+        openModal('bannerModal');
+      });
+    }
+
+    function openEditProfileModal() {
+      requireAuth(() => {
+        document.getElementById('inputChannelName').value = STATE.profile.name;
+        document.getElementById('inputPfpUrl').value = STATE.profile.avatar;
+        document.getElementById('inputChannelBio').value = STATE.profile.bio;
+
+        // Disable name input if cooldown active
+        const isLocked = STATE.nameLockUntilTimestamp && Date.now() < STATE.nameLockUntilTimestamp;
+        document.getElementById('inputChannelName').disabled = isLocked;
+        if (isLocked) {
+          document.getElementById('inputChannelName').classList.add('opacity-50', 'cursor-not-allowed');
+        } else {
+          document.getElementById('inputChannelName').classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+
+        openModal('editProfileModal');
+      });
+    }
+
+    function handleFileSelect(event, targetInputId) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          document.getElementById(targetInputId).value = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function saveAvatarFromModal() {
+      const val = document.getElementById('inputAvatarUrlModal').value.trim();
+      if (val) STATE.profile.avatar = val;
+      updateProfileDOM();
+      updateAuthUI();
+      closeModal('pfpModal');
+    }
+
+    function saveBannerFromModal() {
+      const val = document.getElementById('inputBannerUrlModal').value.trim();
+      if (val) STATE.profile.banner = val;
+      updateProfileDOM();
+      closeModal('bannerModal');
+    }
+
+    function saveProfileChanges() {
+      const newName = document.getElementById('inputChannelName').value.trim();
+      const newPfp = document.getElementById('inputPfpUrl').value.trim();
+      const newBio = document.getElementById('inputChannelBio').value.trim();
+
+      const isLocked = STATE.nameLockUntilTimestamp && Date.now() < STATE.nameLockUntilTimestamp;
+
+      // Handle 12-day channel name edit cooldown lock logic
+      if (newName && newName !== STATE.profile.name && !isLocked) {
+        STATE.profile.name = newName;
+        // Lock name editing for 12 full days
+        STATE.nameLockUntilTimestamp = Date.now() + (12 * 24 * 60 * 60 * 1000);
+      }
+
+      if (newPfp) STATE.profile.avatar = newPfp;
+      if (newBio) STATE.profile.bio = newBio;
+
+      updateProfileDOM();
+      updateAuthUI();
+      closeModal('editProfileModal');
+      triggerMeowSFX();
+    }
+
+    // --- Dynamic 12-Day Countdown Timer Loop ---
+    function startCountdownTimerLoop() {
+      setInterval(() => {
+        const badge = document.getElementById('cooldownBadge');
+        const text = document.getElementById('cooldownCountdownText');
+
+        if (!STATE.nameLockUntilTimestamp || Date.now() >= STATE.nameLockUntilTimestamp) {
+          badge.classList.add('hidden');
+          return;
+        }
+
+        badge.classList.remove('hidden');
+        const diffMs = STATE.nameLockUntilTimestamp - Date.now();
+        const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+        const secs = Math.floor((diffMs % (1000 * 60)) / 1000);
+
+        text.textContent = `${days}d ${hours}h ${mins}m ${secs}s remaining`;
+      }, 1000);
+    }
+
+    // --- VIDEO FILE SELECTOR & AI CAT CONTENT DETECTOR ---
+    let tempUploadedFileBlobUrl = null;
+
+    function handleVideoFileSelect(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const fname = file.name.toLowerCase();
+        if (fname.includes('dog') || fname.includes('puppy') || fname.includes('human') || fname.includes('car') || fname.includes('game')) {
+          document.getElementById('uploadFileUrl').value = '';
+          event.target.value = '';
+          closeModal('uploadVideoModal');
+          openModal('aiWarningModal');
+          return;
+        }
+
+        // Create Blob Object URL for video playing support
+        if (tempUploadedFileBlobUrl) URL.revokeObjectURL(tempUploadedFileBlobUrl);
+        tempUploadedFileBlobUrl = URL.createObjectURL(file);
+        document.getElementById('uploadFileUrl').value = file.name;
+      }
+    }
+
+    function submitVideoUpload() {
+      const type = document.getElementById('uploadType').value;
+      const title = document.getElementById('uploadTitle').value.trim();
+      const rawFileUrl = document.getElementById('uploadFileUrl').value.trim();
+      const category = document.getElementById('uploadCategory').value;
+      const desc = document.getElementById('uploadDesc').value.trim();
+
+      if (category.includes('Non-Cat') || title.toLowerCase().includes('dog') || title.toLowerCase().includes('human')) {
+        closeModal('uploadVideoModal');
+        openModal('aiWarningModal');
+        return;
+      }
+
+      if (!title) return;
+
+      const mediaUrl = tempUploadedFileBlobUrl || rawFileUrl || CAT_IMAGES[Math.floor(Math.random() * CAT_IMAGES.length)];
+
+      if (type === 'short') {
+        STATE.shorts.unshift({
+          id: 's_' + Date.now(),
+          title: title,
+          author: STATE.profile.handle,
+          authorAvatar: STATE.profile.avatar,
+          media: mediaUrl
+        });
+        switchTab('shorts');
+      } else {
+        STATE.videos.unshift({
+          id: 'v_' + Date.now(),
+          title: title,
+          category: category,
+          author: STATE.profile.name,
+          authorAvatar: STATE.profile.avatar,
+          thumbnail: mediaUrl,
+          videoSrc: mediaUrl,
+          desc: desc || "Purr-fect feline content!"
+        });
+        renderVideoGrid();
+      }
+
+      tempUploadedFileBlobUrl = null;
+      closeModal('uploadVideoModal');
+      triggerMeowSFX();
+    }
+
+    // --- HOME GRID RENDER & WATCH MODAL ---
+    function openVideoModal(id) {
+      const v = STATE.videos.find(item => item.id === id);
+      if (!v) return;
+
+      STATE.activeVideoId = id;
+      document.getElementById('modalVideoTitle').textContent = v.title;
+      document.getElementById('modalAuthorName').textContent = v.author;
+      document.getElementById('modalAuthorAvatar').src = v.authorAvatar;
+      document.getElementById('modalDescription').textContent = v.desc;
+      document.getElementById('modalAuthorFollowers').textContent = `${STATE.profile.followers} MeowFollowers`;
+
+      const videoElem = document.getElementById('mainVideoPlayer');
+      const canvasElem = document.getElementById('mainPlayerCanvas');
+      const imgElem = document.getElementById('mainImagePlayer');
+
+      // Stop previous playback
+      videoElem.pause();
+      videoElem.classList.add('hidden');
+      canvasElem.classList.add('hidden');
+      imgElem.classList.add('hidden');
+
+      const src = v.videoSrc || v.thumbnail;
+
+      // Check video format type
+      if (src.startsWith('blob:') || src.endsWith('.mp4') || src.endsWith('.webm') || src.endsWith('.mov')) {
+        videoElem.src = src;
+        videoElem.classList.remove('hidden');
+        videoElem.play().catch(e => console.log('Autoplay handled:', e));
+      } else if (src.endsWith('.gif') || src.includes('unsplash') || src.startsWith('data:image')) {
+        imgElem.src = src;
+        imgElem.classList.remove('hidden');
+      } else {
+        canvasElem.classList.remove('hidden');
+        startPlayerCanvasAnimation();
+      }
+
+      renderCommentsList('videoCommentsList', id);
+      initGifPicker('videoGifPicker', 'selectedVideoGif', 'videoGifPreview', 'videoGifPreviewImg');
+
+      openModal('videoModal');
+    }
+
+    function closeVideoModal() {
+      const videoElem = document.getElementById('mainVideoPlayer');
+      if (videoElem) {
+        videoElem.pause();
+        videoElem.src = '';
+      }
+      closeModal('videoModal');
+      if (playerAnimFrame) cancelAnimationFrame(playerAnimFrame);
+    }
+
+    // --- HOME GRID RENDER & WATCH MODAL ---
+    function renderVideoGrid() {
+      const grid = document.getElementById('videoGrid');
+      const emptyState = document.getElementById('emptyGridState');
+
+      if (STATE.videos.length === 0) {
+        grid.innerHTML = '';
+        emptyState.classList.remove('hidden');
+      } else {
+        emptyState.classList.add('hidden');
+        grid.innerHTML = STATE.videos.map(v => `
+          <div onclick="openVideoModal('${v.id}')" class="group cursor-pointer flex flex-col space-y-2">
+            <div class="relative aspect-video rounded-xl overflow-hidden bg-mewCardBg border border-mewBorder group-hover:border-mewRed transition">
+              <img src="${v.thumbnail}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+              <span class="absolute bottom-2 right-2 bg-black/80 text-white text-[10px] px-1.5 py-0.5 rounded font-mono">0:45</span>
+            </div>
+            <div class="flex items-start gap-3 pt-1">
+              <img src="${v.authorAvatar}" class="w-9 h-9 rounded-full object-cover ring-1 ring-mewRed shrink-0">
+              <div>
+                <h3 class="text-sm font-bold text-white line-clamp-2 leading-tight group-hover:text-mewRed transition">${v.title}</h3>
+                <p class="text-xs text-gray-400 mt-1">${v.author}</p>
+                <p class="text-[11px] text-gray-500">${v.category}</p>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+
+    // --- COMMENTS & GIF SYSTEM ---
+    function toggleGifPicker(pickerId) {
+      const picker = document.getElementById(pickerId);
+      picker.classList.toggle('hidden');
+    }
+
+    function initGifPicker(pickerId, inputId, previewId, imgId) {
+      const picker = document.getElementById(pickerId);
+      picker.innerHTML = PRESET_GIFS.map(gif => `
+        <img src="${gif}" onclick="selectGif('${gif}', '${inputId}', '${previewId}', '${imgId}', '${pickerId}')" class="w-full h-14 object-cover rounded-lg border border-mewBorder hover:border-mewRed cursor-pointer transition">
+      `).join('');
+    }
+
+    function selectGif(gifUrl, inputId, previewId, imgId, pickerId) {
+      document.getElementById(inputId).value = gifUrl;
+      document.getElementById(imgId).src = gifUrl;
+      document.getElementById(previewId).classList.remove('hidden');
+      document.getElementById(pickerId).classList.add('hidden');
+    }
+
+    function clearSelectedGif(pickerId, inputId, previewId) {
+      document.getElementById(inputId).value = '';
+      document.getElementById(previewId).classList.add('hidden');
+    }
+
+    function postVideoComment() {
+      requireAuth(() => {
+        const text = document.getElementById('videoCommentInput').value.trim();
+        const gif = document.getElementById('selectedVideoGif').value;
+
+        if (!text && !gif) return;
+
+        const id = STATE.activeVideoId || 'default';
+        if (!COMMENTS_STORE[id]) COMMENTS_STORE[id] = [];
+
+        COMMENTS_STORE[id].unshift({
+          author: STATE.profile.name,
+          avatar: STATE.profile.avatar,
+          text: text,
+          gif: gif,
+          time: 'Just now'
+        });
+
+        document.getElementById('videoCommentInput').value = '';
+        clearSelectedGif('videoGifPicker', 'selectedVideoGif', 'videoGifPreview');
+        renderCommentsList('videoCommentsList', id);
+        triggerMeowSFX();
+      });
+    }
+
+    function openShortsCommentsModal() {
+      const currentShort = STATE.shorts[currentShortIndex % STATE.shorts.length];
+      const id = currentShort ? currentShort.id : 'short_demo';
+      STATE.activeVideoId = id;
+
+      initGifPicker('shortGifPicker', 'selectedShortGif', 'shortGifPreview', 'shortGifPreviewImg');
+      renderCommentsList('shortsCommentsList', id);
+      openModal('shortsCommentsModal');
+    }
+
+    function postShortComment() {
+      requireAuth(() => {
+        const text = document.getElementById('shortCommentInput').value.trim();
+        const gif = document.getElementById('selectedShortGif').value;
+
+        if (!text && !gif) return;
+
+        const id = STATE.activeVideoId || 'short_demo';
+        if (!COMMENTS_STORE[id]) COMMENTS_STORE[id] = [];
+
+        COMMENTS_STORE[id].unshift({
+          author: STATE.profile.name,
+          avatar: STATE.profile.avatar,
+          text: text,
+          gif: gif,
+          time: 'Just now'
+        });
+
+        document.getElementById('shortCommentInput').value = '';
+        clearSelectedGif('shortGifPicker', 'selectedShortGif', 'shortGifPreview');
+        renderCommentsList('shortsCommentsList', id);
+        triggerMeowSFX();
+      });
+    }
+
+    function renderCommentsList(containerId, contentId) {
+      const container = document.getElementById(containerId);
+      const comments = COMMENTS_STORE[contentId] || [];
+
+      if (comments.length === 0) {
+        container.innerHTML = `<p class="text-gray-500 text-xs text-center py-4">No comments yet. Be the first cat to meow!</p>`;
+        return;
+      }
+
+      container.innerHTML = comments.map(c => `
+        <div class="flex items-start gap-3 bg-mewCardBg p-3 rounded-xl border border-mewBorder">
+          <img src="${c.avatar}" class="w-8 h-8 rounded-full object-cover ring-1 ring-mewRed shrink-0">
+          <div class="space-y-1">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold text-white">${c.author}</span>
+              <span class="text-[10px] text-gray-500">${c.time}</span>
+            </div>
+            ${c.text ? `<p class="text-xs text-gray-300">${c.text}</p>` : ''}
+            ${c.gif ? `<img src="${c.gif}" class="w-32 h-24 object-cover rounded-lg ring-1 ring-mewRed mt-1">` : ''}
+          </div>
+        </div>
+      `).join('');
+    }
+  </script>
+</body>
+</html>
